@@ -14,7 +14,7 @@
 /// Tone:    auto, none, 0.0–1.0  (default: auto)
 /// Gamut:   none, auto, 0.0–1.0  (default: none)
 
-use epaper_dithering_core::enums::{DitherMode, GamutCompression, ToneCompression};
+use epaper_dithering_core::enums::{DitherMode, GamutCompression, Sharpening, ToneCompression};
 use epaper_dithering_core::measured_palettes::{
     BWRY_3_97, BWRY_4_2, HANSHOW_BWR, HANSHOW_BWY, MONO_4_26, SOLUM_BWR, SPECTRA_7_3_6COLOR,
     SPECTRA_7_3_6COLOR_V2,
@@ -104,7 +104,7 @@ fn main() {
     println!("Scheme: {scheme_name}  Mode: {mode_name}  Tone: {tone_name}  Gamut: {gamut_name}");
 
     let t0 = std::time::Instant::now();
-    let indices = dither(&buf, palette, mode, true, tone, gamut);
+    let indices = dither(&buf, palette, mode, true, tone, gamut, Sharpening::None);
     let elapsed = t0.elapsed();
 
     println!("Dither: {:.1}ms  ({} mpx/s)",

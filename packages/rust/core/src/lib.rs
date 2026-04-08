@@ -5,11 +5,12 @@ pub mod enums;
 pub mod error;
 pub mod measured_palettes;
 pub mod palettes;
+pub mod sharpen;
 pub mod tone_map;
 pub mod types;
 
 use crate::color_space::{linear_channel_to_srgb, srgb_channel_to_linear};
-use crate::enums::{DitherMode, GamutCompression, ToneCompression};
+use crate::enums::{DitherMode, GamutCompression, Sharpening, ToneCompression};
 use crate::palettes::Palette;
 use crate::types::{AsPalette, ImageBuffer};
 
@@ -36,6 +37,7 @@ pub fn dither(
     serpentine: bool,
     tone: ToneCompression,
     gamut: GamutCompression,
+    sharpening: Sharpening,
 ) -> Vec<u8> {
     let p = palette.as_palette();
 
@@ -46,11 +48,12 @@ pub fn dither(
     // Fast path: no preprocessing needed
     if matches!(tone, ToneCompression::Fixed(s) if s <= 0.0)
         && matches!(gamut, GamutCompression::None)
+        && matches!(sharpening, Sharpening::None)
     {
         return dispatch(img.data, img.width, img.height, p, mode, serpentine);
     }
 
-    // Convert sRGB bytes → linear pixels, apply tone/gamut, convert back
+    // Convert sRGB bytes → linear pixels, apply tone/sharpening/gamut, convert back
     let mut linear: Vec<[f64; 3]> = img
         .data
         .chunks_exact(3)
@@ -64,6 +67,7 @@ pub fn dither(
         .collect();
 
     tone.apply(&mut linear, p);
+    sharpening.apply(&mut linear, img.width, img.height);
     gamut.apply(&mut linear, p);
 
     let processed: Vec<u8> = linear

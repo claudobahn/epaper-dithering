@@ -7,7 +7,7 @@ use epaper_dithering_core::{
     color_space::srgb_channel_to_linear,
     color_space_lab::{PaletteLab, match_pixel, rgb_to_oklab},
     dither,
-    enums::{DitherMode, GamutCompression, ToneCompression},
+    enums::{DitherMode, GamutCompression, Sharpening, ToneCompression},
     measured_palettes::SPECTRA_7_3_6COLOR,
     palettes::ColorScheme,
     tone_map::{auto_compress_dynamic_range, auto_gamut_compress, compress_dynamic_range, gamut_compress},
@@ -220,6 +220,7 @@ fn bench_full_pipeline(c: &mut Criterion) {
                 true,
                 ToneCompression::Auto,
                 GamutCompression::Auto,
+                Sharpening::None,
             )
         })
     });
@@ -233,6 +234,7 @@ fn bench_full_pipeline(c: &mut Criterion) {
                 true,
                 ToneCompression::Fixed(0.0),
                 GamutCompression::None,
+                Sharpening::None,
             )
         })
     });
@@ -299,6 +301,7 @@ fn bench_full_res(c: &mut Criterion) {
                 true,
                 ToneCompression::Auto,
                 GamutCompression::Auto,
+                Sharpening::None,
             )
         })
     });

@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 
 use epaper_dithering_core::{
     dither,
-    enums::{DitherMode, GamutCompression, ToneCompression},
+    enums::{DitherMode, GamutCompression, Sharpening, ToneCompression},
     measured_palettes::SPECTRA_7_3_6COLOR,
     palettes::ColorScheme,
     types::ImageBuffer,
@@ -53,10 +53,11 @@ fn assert_regression(
     palette: impl epaper_dithering_core::types::AsPalette,
     tone: ToneCompression,
     gamut: GamutCompression,
+    sharpening: Sharpening,
 ) {
     let (pixels, w, _h) = load_rgb(filename);
     let img = ImageBuffer::new(&pixels, w);
-    let output = dither(&img, palette, mode, true, tone, gamut);
+    let output = dither(&img, palette, mode, true, tone, gamut, sharpening);
 
     let stem = Path::new(filename).file_stem().unwrap().to_str().unwrap();
     let ref_path = reference_path(stem, tag);
@@ -120,6 +121,7 @@ fn burkes_spectra6_auto() {
             &SPECTRA_7_3_6COLOR,
             ToneCompression::Auto,
             GamutCompression::Auto,
+            Sharpening::None,
         );
     }
 }
@@ -136,6 +138,7 @@ fn floyd_steinberg_mono_raw() {
             ColorScheme::Mono,
             ToneCompression::Fixed(0.0),
             GamutCompression::None,
+            Sharpening::None,
         );
     }
 }
@@ -152,6 +155,24 @@ fn ordered_spectra6_auto() {
             &SPECTRA_7_3_6COLOR,
             ToneCompression::Auto,
             GamutCompression::Auto,
+            Sharpening::None,
+        );
+    }
+}
+
+/// Burkes + 6-color measured palette + unsharp mask.
+/// Exercises the sharpening preprocessing path through the full pipeline.
+#[test]
+fn burkes_spectra6_unsharp() {
+    for img in discover_images() {
+        assert_regression(
+            &img,
+            "burkes_spectra6_unsharp",
+            DitherMode::Burkes,
+            &SPECTRA_7_3_6COLOR,
+            ToneCompression::Auto,
+            GamutCompression::Auto,
+            Sharpening::Unsharp(1.0),
         );
     }
 }

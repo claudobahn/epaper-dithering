@@ -1,5 +1,5 @@
 use epaper_dithering_core::dither;
-use epaper_dithering_core::enums::{DitherMode, GamutCompression, ToneCompression};
+use epaper_dithering_core::enums::{DitherMode, GamutCompression, Sharpening, ToneCompression};
 use epaper_dithering_core::palettes::{ColorScheme, Palette};
 use epaper_dithering_core::types::ImageBuffer;
 use pyo3::exceptions::PyValueError;
@@ -50,6 +50,7 @@ fn dither_image(
         serpentine,
         parse_tone(tone_compression),
         parse_gamut(gamut_compression),
+        Sharpening::None,
     ))
 }
 
@@ -83,6 +84,7 @@ fn dither_image_palette(
         serpentine,
         parse_tone(tone_compression),
         parse_gamut(gamut_compression),
+        Sharpening::None,
     ))
 }
 

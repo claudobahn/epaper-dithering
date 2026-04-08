@@ -69,6 +69,27 @@ impl GamutCompression {
 
 }
 
+/// Pre-dithering sharpening to counteract error-diffusion blur.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub enum Sharpening {
+    /// No sharpening (default).
+    #[default]
+    None,
+    /// Unsharp mask with the given amount (typical: 0.5–1.5) and radius 1.
+    Unsharp(f64),
+}
+
+impl Sharpening {
+    pub fn apply(self, pixels: &mut [[f64; 3]], width: usize, height: usize) {
+        match self {
+            Sharpening::None => {}
+            Sharpening::Unsharp(amount) => if amount > 0.0 {
+                crate::sharpen::unsharp_mask(pixels, width, height, amount, 1)
+            }
+        }
+    }
+}
+
 impl TryFrom<u8> for DitherMode {
     type Error = DitherError;
 
