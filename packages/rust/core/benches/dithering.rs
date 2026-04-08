@@ -248,8 +248,8 @@ fn bench_real_images(c: &mut Criterion) {
     const FIXTURES: &[(&str, &str)] = &[
         ("frankfurt_nacht.png", "night"),     // dark, low contrast
         ("unicorn.png",         "vivid"),     // saturated colors
-        ("katzi.png",           "detail"),    // fine detail, varied tones
-        ("marienplatz.png",     "daylight"),  // normal outdoor scene
+        ("cat_orange.png",      "detail"),    // fine detail, varied tones
+        ("river.png",           "daylight"),  // normal outdoor scene
     ];
 
     let mut group = c.benchmark_group("real_images");
@@ -283,7 +283,7 @@ fn bench_real_images(c: &mut Criterion) {
 /// Full pipeline on a single full-resolution camera image (6240×4160).
 /// Shows realistic throughput for large inputs.
 fn bench_full_res(c: &mut Criterion) {
-    let (pixels, w, h) = load_fixture("benchmark_only/test7.jpeg");
+    let (pixels, w, h) = load_fixture("benchmark_only/cat.png");
     let img = ImageBuffer::new(&pixels, w);
 
     let mut group = c.benchmark_group("full_res");
