@@ -5,7 +5,7 @@ use epaper_dithering_core::{
         ordered_dither,
     },
     color_space::srgb_channel_to_linear,
-    color_space_lab::{PaletteLab, match_pixel_lch, rgb_to_oklab},
+    color_space_lab::{PaletteLab, match_pixel, rgb_to_oklab},
     dither,
     enums::{DitherMode, GamutCompression, ToneCompression},
     measured_palettes::SPECTRA_7_3_6COLOR,
@@ -149,9 +149,9 @@ fn bench_color_matching(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("color_matching");
     group.throughput(Throughput::Elements(N as u64));
-    group.bench_function("match_pixel_lch_6color", |b| {
+    group.bench_function("match_pixel_6color", |b| {
         b.iter(|| {
-            pixels.iter().map(|&px| match_pixel_lch(px, &palette_lab)).sum::<usize>()
+            pixels.iter().map(|&px| match_pixel(px, &palette_lab)).sum::<usize>()
         })
     });
     group.finish();

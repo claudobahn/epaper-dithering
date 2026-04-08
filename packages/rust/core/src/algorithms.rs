@@ -1,7 +1,7 @@
 //! Error diffusion and ordered dithering on raw RGB pixel buffers.
 
 use crate::color_space::{srgb_channel_to_linear, srgb_normalized_to_linear};
-use crate::color_space_lab::{PaletteLab, match_pixel_lch, rgb_to_oklab};
+use crate::color_space_lab::{PaletteLab, match_pixel, rgb_to_oklab};
 use crate::palettes::Palette;
 use rayon::prelude::*;
 
@@ -176,7 +176,7 @@ pub fn error_diffusion_dither(
             let b_lin = lut[bs.round() as usize];
 
             let pixel_lab = rgb_to_oklab(r_lin, g_lin, b_lin);
-            let best_idx = match_pixel_lch(pixel_lab, &palette_lab);
+            let best_idx = match_pixel(pixel_lab, &palette_lab);
 
             output[y * width + x] = best_idx as u8;
 
@@ -240,7 +240,7 @@ pub fn direct_map(pixels: &[u8], palette: &Palette) -> Vec<u8> {
             let g = srgb_channel_to_linear(rgb[1]);
             let b = srgb_channel_to_linear(rgb[2]);
             let lab = rgb_to_oklab(r, g, b);
-            match_pixel_lch(lab, &palette_lab) as u8
+            match_pixel(lab, &palette_lab) as u8
         })
         .collect()
 }
@@ -277,7 +277,7 @@ pub fn ordered_dither(pixels: &[u8], width: usize, palette: &Palette) -> Vec<u8>
             let b = srgb_normalized_to_linear((rgb[2] as f64 / 255.0 + threshold).clamp(0.0, 1.0));
 
             let lab = rgb_to_oklab(r, g, b);
-            match_pixel_lch(lab, &palette_lab) as u8
+            match_pixel(lab, &palette_lab) as u8
         })
         .collect()
 }

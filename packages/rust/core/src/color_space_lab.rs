@@ -1,6 +1,8 @@
-//! OKLab color space and LCH-weighted color matching.
+//! OKLab color space and weighted Cartesian color matching.
 //!
-//! LCH weighting: hue errors can't be corrected by diffusion, lightness errors can.
+//! Uses weighted Euclidean distance in OKLab (L, a, b) with a modest boost to
+//! chrominance axes (Wab=1.5) to prioritise color-ink usage on e-paper displays
+//! while keeping lightness accuracy for structural detail.
 
 // sRGB -> XYZ matrix (D65 illuminant, BruceLinbloom)
 const M_RGB_XYZ: [[f64; 3]; 3] = [
@@ -23,10 +25,11 @@ const M2: [[f64; 3]; 3] = [
     [0.0259040371, 0.7827717662, -0.8086757660],
 ];
 
-// LCH distance weights (hue > chroma > lightness)
-const WL: f64 = 0.5;
-const WC: f64 = 3.0; // scaled for OKLab's C range [0, ~0.4]
-const WH: f64 = 6.0;
+// Weighted Cartesian OKLab distance weights.
+// Wab > 1 slightly favours chromatic palette entries over achromatic ones,
+// which helps e-paper displays utilise their limited colour inks.
+const WL: f64 = 1.0;
+const WAB: f64 = 1.5;
 
 #[derive(Debug, Clone, Copy)]
 pub struct OkLab {
@@ -64,7 +67,6 @@ pub fn rgb_to_oklab(r: f64, g: f64, b: f64) -> OkLab {
 
 pub struct PaletteLab {
     pub colors: Vec<OkLab>,
-    pub chromas: Vec<f64>,
 }
 
 impl PaletteLab {
@@ -73,26 +75,23 @@ impl PaletteLab {
             .iter()
             .map(|c| rgb_to_oklab(c[0], c[1], c[2]))
             .collect();
-        let chromas = colors.iter().map(|c| c.chroma()).collect();
-        Self { colors, chromas }
+        Self { colors }
     }
 }
 
-/// Returns the index of the closest palette color (LCH-weighted OKLab distance).
-pub fn match_pixel_lch(pixel: OkLab, palette: &PaletteLab) -> usize {
-    let pc = pixel.chroma();
-
+/// Returns the index of the closest palette color (weighted Cartesian OKLab distance).
+pub fn match_pixel(pixel: OkLab, palette: &PaletteLab) -> usize {
     let mut best_idx = 0;
     let mut best_dist = f64::INFINITY;
 
-    for (i, (pal, &pal_c)) in palette.colors.iter().zip(palette.chromas.iter()).enumerate() {
+    for (i, pal) in palette.colors.iter().enumerate() {
         let dl = pixel.l - pal.l;
         let da = pixel.a - pal.a;
         let db = pixel.b - pal.b;
-        let dc = pc - pal_c;
-        let dh_sq = (da * da + db * db - dc * dc).max(0.0);
 
-        let dist = (WL * dl) * (WL * dl) + (WC * dc) * (WC * dc) + WH * WH * dh_sq;
+        let dist = (WL * dl) * (WL * dl)
+            + (WAB * da) * (WAB * da)
+            + (WAB * db) * (WAB * db);
         if dist < best_dist {
             best_dist = dist;
             best_idx = i;
@@ -101,6 +100,7 @@ pub fn match_pixel_lch(pixel: OkLab, palette: &PaletteLab) -> usize {
 
     best_idx
 }
+
 
 #[cfg(test)]
 mod tests {
@@ -128,25 +128,23 @@ mod tests {
         let red_linear = [0.2126, 0.0, 0.0_f64];
         let palette = PaletteLab::from_linear_rgb(&[red_linear, [0.0, 0.7152, 0.0]]);
         let pixel = rgb_to_oklab(red_linear[0], red_linear[1], red_linear[2]);
-        assert_eq!(match_pixel_lch(pixel, &palette), 0);
+        assert_eq!(match_pixel(pixel, &palette), 0);
     }
 
     #[test]
-    fn lch_weights_favor_hue_over_lightness() {
-        // Target: medium-dark red-ish pixel
-        // Option A (index 0): darker red — same hue, lower lightness
-        // Option B (index 1): neutral gray — same-ish lightness, completely different hue
-        //
-        // With WH=6.0 >> WL=0.5, option A (correct hue) should win over option B.
-        let target         = rgb_to_oklab(0.30, 0.04, 0.04); // medium red
-        let option_a_rgb   = [0.10_f64, 0.012, 0.012];       // darker red — hue match
-        let option_b_rgb   = [0.30_f64, 0.30,  0.30];        // neutral gray — lightness match
+    fn achromatic_does_not_attract_saturated_pixels() {
+        // A saturated pixel should not preferentially match an achromatic palette
+        // entry just because hue is undefined at zero chroma.
+        // Vivid blue should match a blue-ish palette entry, not black.
+        let target = rgb_to_oklab(0.0, 0.0, 0.8); // vivid blue
+        let blue_ish = [0.0_f64, 0.05, 0.4];       // dark blue
+        let black    = [0.0_f64, 0.0,  0.0];        // achromatic
 
-        let palette = PaletteLab::from_linear_rgb(&[option_a_rgb, option_b_rgb]);
-        let result = match_pixel_lch(target, &palette);
+        let palette = PaletteLab::from_linear_rgb(&[blue_ish, black]);
+        let result = match_pixel(target, &palette);
         assert_eq!(
             result, 0,
-            "LCH matching should prefer correct hue (darker red) over correct lightness (gray)"
+            "saturated blue should match dark blue, not achromatic black"
         );
     }
 }
