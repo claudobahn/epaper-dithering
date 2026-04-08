@@ -39,6 +39,10 @@ pub fn dither(
 ) -> Vec<u8> {
     let p = palette.as_palette();
 
+    if img.data.is_empty() {
+        return Vec::new();
+    }
+
     // Fast path: no preprocessing needed
     if matches!(tone, ToneCompression::Fixed(s) if s <= 0.0)
         && matches!(gamut, GamutCompression::None)
