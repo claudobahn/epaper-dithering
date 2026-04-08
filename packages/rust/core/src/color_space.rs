@@ -1,10 +1,14 @@
-/// sRGB [0–255] → linear [0.0–1.0]. IEC 61966-2-1 piecewise transfer function.
+/// sRGB [0–255] → linear [0.0–1.0].
 pub fn srgb_channel_to_linear(value: u8) -> f64 {
-    let normalized = value as f64 / 255.0;
-    if normalized <= 0.04045 {
-        normalized / 12.92
+    srgb_normalized_to_linear(value as f64 / 255.0)
+}
+
+/// Normalized sRGB [0.0–1.0] → linear [0.0–1.0]. IEC 61966-2-1 piecewise transfer function.
+pub fn srgb_normalized_to_linear(value: f64) -> f64 {
+    if value <= 0.04045 {
+        value / 12.92
     } else {
-        ((normalized + 0.055) / 1.055).powf(2.4)
+        ((value + 0.055) / 1.055).powf(2.4)
     }
 }
 

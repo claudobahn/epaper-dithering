@@ -1,6 +1,6 @@
 //! Error diffusion and ordered dithering on raw RGB pixel buffers.
 
-use crate::color_space::srgb_channel_to_linear;
+use crate::color_space::{srgb_channel_to_linear, srgb_normalized_to_linear};
 use crate::color_space_lab::{PaletteLab, match_pixel_lch, rgb_to_oklab};
 use crate::palettes::Palette;
 use rayon::prelude::*;
@@ -270,9 +270,11 @@ pub fn ordered_dither(pixels: &[u8], width: usize, palette: &Palette) -> Vec<u8>
 
             let threshold = BAYER_4X4[y % 4][x % 4];
 
-            let r = (srgb_channel_to_linear(rgb[0]) + threshold).clamp(0.0, 1.0);
-            let g = (srgb_channel_to_linear(rgb[1]) + threshold).clamp(0.0, 1.0);
-            let b = (srgb_channel_to_linear(rgb[2]) + threshold).clamp(0.0, 1.0);
+            // Apply threshold in perceptual (sRGB) space for uniform dithering
+            // across the tonal range, then convert to linear for OKLab matching.
+            let r = srgb_normalized_to_linear((rgb[0] as f64 / 255.0 + threshold).clamp(0.0, 1.0));
+            let g = srgb_normalized_to_linear((rgb[1] as f64 / 255.0 + threshold).clamp(0.0, 1.0));
+            let b = srgb_normalized_to_linear((rgb[2] as f64 / 255.0 + threshold).clamp(0.0, 1.0));
 
             let lab = rgb_to_oklab(r, g, b);
             match_pixel_lch(lab, &palette_lab) as u8
